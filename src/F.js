@@ -6,6 +6,7 @@ const rl = require('readline');
 
 const F = (module.exports = { routes: {} });
 const middlewares = {};
+F.middlewares = middlewares;
 
 fs.readdirSync(require('path').join(__dirname, 'middlewares')).forEach((file) => {
     const mw = require(`./middlewares/${file}`);
@@ -58,12 +59,13 @@ F.dispatch = async function (ctx, next) {
     );
     if (!match) {
         ctx.throw(404, 'no route found');
+        return;
     }
 
-    compose(match[1])(ctx, next);
+    await compose(match[1])(ctx, next);
 }.bind(F);
 
-F.load = function (filePath) {
+F.createRouter = function (filePath) {
     const reg = /^(get|post|put|delete)\s(\/[^\s]*)\s(.+)$/i;
     rl.createInterface(fs.createReadStream(filePath, { encoding: 'utf-8' })).on('line', (line) => {
         if (!reg.test(line)) {
@@ -102,14 +104,16 @@ F.Koa = class App extends Koa {
      */
     createContext(req, res) {
         const ctx = Koa.prototype.createContext.call(this, req, res);
-        ctx.ok = (statusCode, data, ...rest) => {
+        ctx.ok = (statusCode, payload, ...rest) => {
+            ctx.set('Content-Type', 'application/json');
             ctx.status = statusCode;
             ctx.body = {
-                data,
+                payload,
                 ...rest,
             };
         };
         ctx.fail = (statusCode, errors, ...rest) => {
+            ctx.set('Content-Type', 'application/json');
             ctx.status = statusCode;
             ctx.body = {
                 errors: Array.isArray(errors) ? errors : [errors],
@@ -124,3 +128,12 @@ F.Koa = class App extends Koa {
 };
 
 F.Koa.HttpError = Koa.HttpError;
+
+F.createApplication = function (port = 3000) {
+    const app = new F.Koa();
+
+    console.log(`App is running at port: ${port}`);
+    app.listen(port);
+
+    return app;
+};
