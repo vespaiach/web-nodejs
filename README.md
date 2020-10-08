@@ -1,2 +1,6 @@
+Want to build a website, it's easy! Let's google how to make it, then install some frameworks, libraries or use some helper tools and then a new website is born. There are so many frameworks, libraries, helper tools nowaday and they help me to speed up developing time alot, but what code are inside them? Can I make a website without them?
+
+Oh, I've forgotten to ask myself those questions for a while. Let begin to ask...
+
 # web-nodejs
-This repository is about learning to build a whole website with Nodejs without using any other tools or libraries
+Let's build a website using Nodejs.
