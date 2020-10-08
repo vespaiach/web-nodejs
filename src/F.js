@@ -1,4 +1,5 @@
 const Koa = require('koa');
+const createError = require('http-errors');
 const compose = require('koa-compose');
 const fs = require('fs');
 const rl = require('readline');
@@ -32,8 +33,12 @@ fs.readdirSync(require('path').join(__dirname, 'middlewares')).forEach((file) =>
         if (args.length !== 2) {
             throw new Error('Wrong input parameters for pipe');
         }
+        let fns = args[1];
+        if (['post', 'put', 'delete'].some((a) => a === method)) {
+            fns = ['bodyParser', ...fns];
+        }
 
-        for (let fn of ['error', ...args[1]]) {
+        for (let fn of fns) {
             if (!middlewares[fn]) {
                 throw new Error(`No middleware name "${fn}" was found!`);
             }
@@ -41,7 +46,7 @@ fs.readdirSync(require('path').join(__dirname, 'middlewares')).forEach((file) =>
         }
 
         this.routes[method] = this.routes[method] || [];
-        this.routes[method].push([new RegExp(args[0], 'gi'), lst]);
+        this.routes[method].push([new RegExp(args[0], 'i'), lst]);
     };
 });
 
@@ -110,6 +115,9 @@ F.Koa = class App extends Koa {
                 errors: Array.isArray(errors) ? errors : [errors],
                 ...rest,
             };
+        };
+        ctx.throw = (...args) => {
+            ctx.app.emit('error', createError(...args), ctx);
         };
         return ctx;
     }

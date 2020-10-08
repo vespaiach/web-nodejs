@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-module.exports = function (ctx, next) {
+module.exports = async (ctx, next) => {
     if (!ctx.req.headers.authentication || !ctx.req.headers.authentication.startsWith('Bearer ')) {
         ctx.throw(401, 'token required', { expose: true });
         return;
@@ -19,5 +19,5 @@ module.exports = function (ctx, next) {
         return;
     }
 
-    next();
+    await next();
 };
