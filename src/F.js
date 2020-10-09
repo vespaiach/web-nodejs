@@ -3,6 +3,7 @@ const fs = require('fs');
 const rl = require('readline');
 const path = require('path');
 const { EventEmitter } = require('events');
+const { URL } = require('url');
 
 const F = (module.exports = { handlers: {}, routes: {} });
 
@@ -116,6 +117,10 @@ F.compose = function (handlers) {
 };
 
 F.routing = async function (ctx) {
+    if (ctx.isStaticFile) {
+        return;
+    }
+
     const match = (this.routes[ctx.request.method.toLowerCase()] || []).find((p) =>
         p[0].test(ctx.request.url)
     );
@@ -126,6 +131,13 @@ F.routing = async function (ctx) {
 
     await this.compose(match[1])(ctx);
 };
+
+function text(statusCode, data) {
+    this.response.statusCode = statusCode;
+    this.response.setHeader('Content-Type', 'text/plain');
+    this.response.setHeader('Content-Length', Buffer.byteLength(data));
+    this.response.end(data);
+}
 
 function json(statusCode, ...rest) {
     this.response.statusCode = statusCode;
@@ -152,11 +164,22 @@ function createHttpError(statusCode, message, options) {
 
 F.createContext = function (request, response) {
     const ctx = Object.create(new EventEmitter());
+    const protocol =
+        (request.connection && request.connection.encrypted) ||
+        (request.headers['x-forwarded-proto'] || request.headers['x-forwarded-protocol']) ===
+            'https'
+            ? 'https'
+            : 'http';
+
     ctx.json = json;
     ctx.json204 = json204;
+    ctx.text = text;
     ctx.request = request;
     ctx.response = response;
     ctx.createHttpError = createHttpError;
+    ctx.uri = new URL(request.url, `${protocol}://${request.headers.host}`);
+    ctx.isStaticFile = /\.\w{2,8}($|\?)+/.test(ctx.uri.pathname);
+
     return ctx;
 };
 

@@ -1,3 +1,3 @@
-exports.pong = async function (ctx) {
-    ctx.json(200, 'pong');
+exports.ping = async function (ctx) {
+    ctx.text(200, 'pong');
 };
