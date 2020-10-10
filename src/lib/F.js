@@ -2,8 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const rl = require('readline');
 const path = require('path');
-const { EventEmitter } = require('events');
-const { URL } = require('url');
+const Context = require('./Context');
 
 const F = (module.exports = { handlers: {}, routes: {} });
 
@@ -132,77 +131,12 @@ F.routing = async function (ctx) {
     await this.compose(match[1])(ctx);
 };
 
-function text(statusCode, data) {
-    this.response.statusCode = statusCode;
-    this.response.setHeader('Content-Type', 'text/plain');
-    this.response.setHeader('Content-Length', Buffer.byteLength(data));
-    this.response.end(data);
-}
-
-function json(statusCode, ...rest) {
-    this.response.statusCode = statusCode;
-    const body = JSON.stringify({ ...rest });
-    this.response.setHeader('Content-Type', 'application/json');
-    this.response.setHeader('Content-Length', Buffer.byteLength(body));
-    this.response.end(body);
-}
-
-function json204() {
-    this.response.statusCode = 204;
-    this.response.removeHeader('Content-Type');
-    this.response.removeHeader('Transfer-Encoding');
-    return this.response.end();
-}
-
-function createHttpError(statusCode, message, options) {
-    return {
-        statusCode,
-        message,
-        ...options,
-    };
-}
-
-F.createContext = function (request, response) {
-    const ctx = Object.create(new EventEmitter());
-    const protocol =
-        (request.connection && request.connection.encrypted) ||
-        (request.headers['x-forwarded-proto'] || request.headers['x-forwarded-protocol']) ===
-            'https'
-            ? 'https'
-            : 'http';
-
-    ctx.json = json;
-    ctx.json204 = json204;
-    ctx.text = text;
-    ctx.request = request;
-    ctx.response = response;
-    ctx.createHttpError = createHttpError;
-    ctx.uri = new URL(request.url, `${protocol}://${request.headers.host}`);
-    ctx.isStaticFile = /\.\w{2,8}($|\?)+/.test(ctx.uri.pathname);
-
-    return ctx;
-};
-
-F.debug = function () {
-    if (process.env.NODE_ENV === 'development') {
-        for (let ar of arguments) {
-            if (typeof ar === 'function') {
-                ar.call(global);
-            } else {
-                console.log('----------------Debug Information----------------');
-                console.log(ar);
-                console.log('-------------------------------------------------');
-            }
-        }
-    }
-};
-
 F.createServer = function (port = 3000) {
     loadHandlers.call(this);
     readRouteConfig.call(this);
 
     const server = http.createServer(async (request, response) => {
-        const ctx = this.createContext(request, response);
+        const ctx = new Context(request, response);
 
         request.on('error', (err) => {
             ctx.emit('error', ctx.createHttpError(500, 'Request stream error', { origin: err }));
@@ -211,7 +145,11 @@ F.createServer = function (port = 3000) {
             ctx.emit('error', ctx.createHttpError(500, 'Response stream error', { origin: err }));
         });
 
-        await this.routing(ctx);
+        try {
+            await this.routing(ctx);
+        } catch (err) {
+            ctx.alertError(err);
+        }
     });
 
     server.listen(port);

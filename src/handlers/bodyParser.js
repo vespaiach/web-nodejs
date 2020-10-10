@@ -1,6 +1,6 @@
 const limit = 1024 * 1024;
 
-const readStream = (stream) => {
+const readStream = (ctx) => {
     let buffer = Buffer.alloc(0, { endcoding: 'utf-8' });
     let receive = 0;
     let complete = false;
@@ -8,13 +8,13 @@ const readStream = (stream) => {
     const result = new Promise((res, rej) => {
         [resolve, reject] = [res, rej];
     });
-    stream
+    ctx.request
         .on('data', (chunk) => {
             if (!complete) {
                 receive += chunk.length;
                 if (receive > limit) {
                     complete = true;
-                    reject({ code: 400, message: `body size was over limit: ${limit} bytes` });
+                    reject(ctx.HttpError.create(400, `body size was over limit: ${limit} bytes`));
                     return;
                 }
                 buffer = Buffer.concat([buffer, chunk]);
@@ -25,11 +25,11 @@ const readStream = (stream) => {
             try {
                 resolve(JSON.parse(buffer.toString('utf-8')));
             } catch (err) {
-                reject({ code: 400, message: 'bad body' });
+                reject(ctx.HttpError.create(err));
             }
         })
         .on('error', (err) => {
-            reject({ code: 500, message: 'server error', err });
+            reject(ctx.HttpError.create(err));
         });
 
     return result;
@@ -37,21 +37,21 @@ const readStream = (stream) => {
 
 module.exports = async (ctx, next) => {
     if (
-        !ctx.request.is([
+        !ctx.typeis([
             'application/json',
             'application/json-patch+json',
             'application/vnd.api+json',
             'application/csp-report',
         ])
     ) {
-        ctx.throw(400, 'not support content-type', { expose: true });
+        ctx.alertError(400, 'Not supported content-type');
         return;
     }
 
     try {
-        ctx.payload = await readStream(ctx.req);
+        ctx.payload = await readStream(ctx.request);
     } catch (err) {
-        ctx.throw(err.code, err.message, { expose: err.code < 500, origin: err });
+        ctx.alertError(err);
         return;
     }
 
