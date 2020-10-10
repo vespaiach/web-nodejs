@@ -51,8 +51,8 @@ const F = (module.exports = { handlers: {}, routes: {} });
  * Example: user.js -> user.login, user.logout, user.create
  */
 function loadHandlers() {
-    fs.readdirSync(path.join(__dirname, 'handlers')).forEach((file) => {
-        const handler = require(`./handlers/${file}`);
+    fs.readdirSync(path.join(__dirname, '..', 'handlers')).forEach((file) => {
+        const handler = require(`../handlers/${file}`);
         const handlerName = file.replace(/^(.+)\.\w+$/, '$1');
 
         switch (typeof handler) {
@@ -75,12 +75,13 @@ function loadHandlers() {
  *
  */
 function readRouteConfig() {
-    const reg = /^(get|post|put|delete)\s(\/[^\s]*)\s(.+)$/i;
+    const reg = /^(get|post|put|delete)\s([^\s]+)\s([^\s]+)$/i;
     rl.createInterface(
-        fs.createReadStream(path.join(__dirname, 'route.config'), { encoding: 'utf-8' })
+        fs.createReadStream(path.join(__dirname, '..', 'route.config'), { encoding: 'utf-8' })
     ).on('line', (line) => {
         if (!reg.test(line)) {
-            throw new Error(`Wrong syntax: ${line}`);
+            console.log(`Warn route config: ${line}`);
+            return;
         }
 
         const matches = reg.exec(line.trim());
@@ -117,15 +118,24 @@ F.compose = function (handlers) {
 
 F.routing = async function (ctx) {
     if (ctx.isStaticFile) {
-        return;
+        ctx.throw(404);
     }
 
-    const match = (this.routes[ctx.request.method.toLowerCase()] || []).find((p) =>
-        p[0].test(ctx.request.url)
-    );
+    const routes = this.routes[ctx.request.method.toLowerCase()] || [];
+    let match;
+    for (let r of routes) {
+        match = r.exec(ctx.uri.pathname);
+        if (!match) {
+            break;
+        }
+    }
+
     if (!match) {
-        ctx.throw(404, 'no route found');
-        return;
+        ctx.throw(404);
+    }
+
+    if (match.groups) {
+        ctx.params = { ...match.groups };
     }
 
     await this.compose(match[1])(ctx);
