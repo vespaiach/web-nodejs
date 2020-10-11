@@ -1,6 +1,6 @@
 const limit = 1024 * 1024;
 
-const readStream = (ctx) => {
+const readStream = (liquid) => {
     let buffer = Buffer.alloc(0, { endcoding: 'utf-8' });
     let receive = 0;
     let complete = false;
@@ -8,13 +8,13 @@ const readStream = (ctx) => {
     const result = new Promise((res, rej) => {
         [resolve, reject] = [res, rej];
     });
-    ctx.request
+    liquid.request
         .on('data', (chunk) => {
             if (!complete) {
                 receive += chunk.length;
                 if (receive > limit) {
                     complete = true;
-                    reject(ctx.HttpError.create(400, `body size was over limit: ${limit} bytes`));
+                    reject(liquid.collect(400, `Body size was over limit: ${limit} bytes`));
                     return;
                 }
                 buffer = Buffer.concat([buffer, chunk]);
@@ -25,33 +25,35 @@ const readStream = (ctx) => {
             try {
                 resolve(JSON.parse(buffer.toString('utf-8')));
             } catch (err) {
-                reject(ctx.HttpError.create(err));
+                const leak = liquid.collect(400, 'Body data was not recognized');
+                leak.origin = err;
+                reject(leak);
             }
         })
         .on('error', (err) => {
-            reject(ctx.HttpError.create(err));
+            reject(liquid.collect(err));
         });
 
     return result;
 };
 
-module.exports = async (ctx, next) => {
+module.exports = async (liquid, next) => {
     if (
-        !ctx.typeis([
+        !liquid.typeis([
             'application/json',
             'application/json-patch+json',
             'application/vnd.api+json',
             'application/csp-report',
         ])
     ) {
-        ctx.alertError(400, 'Not supported content-type');
+        liquid.fail(400, 'Not supported content-type');
         return;
     }
 
     try {
-        ctx.payload = await readStream(ctx.request);
+        liquid.payload = await readStream(liquid.request);
     } catch (err) {
-        ctx.alertError(err);
+        liquid.report(err);
         return;
     }
 

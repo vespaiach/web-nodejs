@@ -1,4 +1,4 @@
-module.exports = exports = HttpError;
+module.exports = exports = Leakage;
 
 const ErrCodes = {
     400: 'Bad Request',
@@ -42,22 +42,26 @@ const ErrCodes = {
     511: 'Network Authentication Required',
 };
 
-function HttpError() {
-    Error.captureStackTrace(this, HttpError);
+function Leakage() {
+    Error.captureStackTrace(this, Leakage);
 }
 
-HttpError.prototype.toJson = function () {
+Leakage.prototype.toJson = function () {
     return {
         errors: this.messages,
     };
 };
 
-HttpError.prototype.addMessage = function (message) {
+Leakage.prototype.addMessage = function (message) {
     this.messages.push(message);
 };
 
-HttpError.create = function () {
-    const err = new HttpError();
+Leakage.collect = function () {
+    if (arguments[0] instanceof Leakage) {
+        return arguments[0];
+    }
+
+    const err = new Leakage();
 
     if (arguments.length === 1) {
         if (typeof arguments[0] === 'number') {
@@ -70,11 +74,11 @@ HttpError.create = function () {
         } else if (arguments[0] instanceof Error) {
             err.messages = [arguments[0].message];
             err.statusCode = 500;
-            err.origin = err;
+            err.origin = arguments[0];
         } else {
-            err.messages = 'Unknown Error';
+            err.messages = ['Unknown Error'];
             err.statusCode = 500;
-            err.origin = err;
+            err.origin = arguments[0];
         }
     } else {
         err.statusCode = arguments[0];
@@ -84,5 +88,5 @@ HttpError.create = function () {
         }
     }
 
-    return;
+    return err;
 };

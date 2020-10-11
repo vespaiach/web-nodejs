@@ -2,10 +2,10 @@
     "name": "web-nodejs",
     "version": "1.0.0",
     "description": "Learn to build website with Nodejs",
-    "main": "index.js",
+    "main": "src/server.js",
     "scripts": {
         "test": "jest",
-        "dev": "cross-env NODE_ENV=development nodemon ./src/index.js"
+        "dev": "cross-env NODE_ENV=development nodemon ./src/server.js"
     },
     "repository": {
         "type": "git",
