@@ -24,11 +24,11 @@ function done(statusCode, data, extraHeaders = {}) {
 }
 
 function ok(statusCode, data, extraHeaders = {}) {
-    done(statusCode, { data }, extraHeaders);
+    this.done(statusCode, { data }, extraHeaders);
 }
 
 function fail(statusCode, errors, extraHeaders = {}) {
-    done(statusCode, { errors: Array.isArray(errors) ? errors : [errors] }, extraHeaders);
+    this.done(statusCode, { errors: Array.isArray(errors) ? errors : [errors] }, extraHeaders);
 }
 
 function done204() {

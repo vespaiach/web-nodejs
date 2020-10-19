@@ -51,9 +51,13 @@ module.exports = async (liquid, next) => {
     }
 
     try {
-        liquid.payload = await readStream(liquid.request);
+        liquid.payload = await readStream(liquid);
     } catch (err) {
-        liquid.report(err);
+        if (err.statusCode >= 500) {
+            liquid.report(err);
+        } else {
+            liquid.ok(err.statusCode, err.messages);
+        }
         return;
     }
 

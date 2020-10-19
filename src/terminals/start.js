@@ -12,8 +12,5 @@ module.exports = async (liquid, next) => {
         await next();
     } catch (err) {
         liquid.report(err);
-        liquid.fail(500, 'Unexpected server error');
     }
-
-    liquid.response.setHeader('Vary', 'Origin');
 };

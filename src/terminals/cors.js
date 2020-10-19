@@ -16,7 +16,7 @@ module.exports = async (liquid, next) => {
     }
     liquid.response.setHeader('Access-Control-Allow-Methods', allowMethods.join(','));
 
-    if (liquid.request['access-control-qequest-headers']) {
+    if (liquid.request.headers['access-control-request-headers']) {
         liquid.response.setHeader('Access-Control-Allow-Headers', allowHeaders);
     }
 

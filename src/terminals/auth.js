@@ -1,22 +1,29 @@
 const jwt = require('jsonwebtoken');
 
-module.exports = async (ctx, next) => {
-    if (
-        !ctx.request.headers.authentication ||
-        !ctx.request.headers.authentication.startsWith('Bearer ')
-    ) {
-        ctx.throw(401);
+module.exports = async (liquid, next) => {
+    const authentication = liquid.request.headers['authentication'];
+    if (!authentication) {
+        liquid.fail(401);
+        return;
     }
 
-    ctx.rawToken = ctx.req.headers.authentication.slice(7).trim();
-    if (!ctx.state.bearerToken.length) {
-        ctx.throw(401, 'Bad Token');
+    if (!authentication.startsWith('Bearer ')) {
+        liquid.fail(401, 'Bad authentication token');
+        return;
+    }
+
+    liquid.rawToken = authentication.slice(7).trim();
+
+    if (!liquid.rawToken.length) {
+        liquid.fail(401, 'Bad Token');
+        return;
     }
 
     try {
-        ctx.tokenClaims = jwt.verify(ctx.bearerToken, process.env.TOKEN_SECRET);
+        liquid.tokenClaims = jwt.verify(liquid.rawToken, process.env.TOKEN_SECRET);
     } catch (err) {
-        ctx.throw(401, 'Bad Token');
+        liquid.fail(401, 'Bad Token');
+        return;
     }
 
     await next();
