@@ -56,7 +56,7 @@ function report(...args) {
 
 /**
  * Collect information about the error
- * @param  {...any} args 
+ * @param  {...any} args
  */
 function collect(...args) {
     return Leakage.collect(...args);
@@ -74,6 +74,12 @@ function Liquid(request, response, Pool) {
     this.request = request;
     this.response = response;
     this.Pool = Pool;
+
+    if (this.Pool.global) {
+        Object.keys(this.Pool.global).forEach((k) => {
+            this[k] = this.Pool.global[k];
+        });
+    }
 }
 
 Liquid.prototype = {

@@ -125,16 +125,29 @@ Pool.routing = async (liquid) => {
     await makePipeline(p, liquid);
 };
 
-Pool.start = function (port = 3000) {
+Pool.global = function (data) {
+    this.global = data;
+    return this;
+};
+
+Pool.fail = function (error) {
+    this.emit('fail', error);
+};
+
+Pool.start = function (port = 3000, addOns = {}) {
     loadTerminals();
     loadPipelineConfig();
 
+    Object.entries(addOns).forEach(([k, v]) => {
+        this[k] = v(this);
+    });
+
     http.createServer(async (request, response) => {
         request.on('error', (err) => {
-            Pool.emit('fail', err);
+            Pool.fail(err);
         });
         response.on('error', (err) => {
-            Pool.emit('fail', err);
+            Pool.fail(err);
         });
 
         try {
@@ -144,7 +157,7 @@ Pool.start = function (port = 3000) {
         }
     })
         .on('error', (err) => {
-            Pool.emit('fail', err);
+            Pool.fail(err);
         })
         .listen(port);
 
