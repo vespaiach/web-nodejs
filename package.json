@@ -1,34 +1,42 @@
 {
-  "name": "web-nodejs",
-  "version": "1.0.0",
-  "description": "Learn to build website with Nodejs",
-  "main": "index.js",
-  "scripts": {
-    "test": "jest",
-    "dev": "nodemon index.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/vespaiach/web-nodejs.git"
-  },
-  "keywords": [
-    "nodejs",
-    "website",
-    "learn"
-  ],
-  "author": "Toan Nguyen",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/vespaiach/web-nodejs/issues"
-  },
-  "homepage": "https://github.com/vespaiach/web-nodejs#readme",
-  "devDependencies": {
-    "eslint": "^7.9.0",
-    "eslint-config-prettier": "^6.11.0",
-    "eslint-plugin-jest": "^24.0.2",
-    "eslint-plugin-node": "^11.1.0",
-    "jest": "^26.4.2",
-    "nodemon": "^2.0.4",
-    "prettier": "^2.1.2"
-  }
+    "name": "web-nodejs",
+    "version": "1.0.0",
+    "description": "Learn to build website with Nodejs",
+    "main": "src/server.js",
+    "scripts": {
+        "test": "jest",
+        "dev": "cross-env NODE_ENV=development nodemon ./src/server.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/vespaiach/web-nodejs.git"
+    },
+    "keywords": [
+        "nodejs",
+        "website",
+        "learn"
+    ],
+    "author": "Toan Nguyen",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/vespaiach/web-nodejs/issues"
+    },
+    "homepage": "https://github.com/vespaiach/web-nodejs#readme",
+    "devDependencies": {
+        "cross-env": "^7.0.2",
+        "dotenv": "^8.2.0",
+        "eslint": "^7.9.0",
+        "eslint-config-prettier": "^6.11.0",
+        "eslint-plugin-jest": "^24.0.2",
+        "eslint-plugin-node": "^11.1.0",
+        "jest": "^26.4.2",
+        "nodemon": "^2.0.4",
+        "prettier": "^2.1.2"
+    },
+    "dependencies": {
+        "jsonwebtoken": "^8.5.1"
+    },
+    "engines": {
+        "node": ">= 8.3.0"
+    }
 }

@@ -1,9 +1,9 @@
-const http = require('http');
+if (process.env.NODE_ENV === 'development') {
+    require('dotenv').config();
+}
 
-const server = http.createServer();
-server.on('request', function (request, response) {
-    response.write('hello');
-    response.end();
+const P = require('./lib/Pool');
+P.start().on('fail', (err) => {
+    // Todo: handle server error
+    console.error(err);
 });
-
-module.exports = server;
