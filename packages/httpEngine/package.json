@@ -1,0 +1,11 @@
+{
+  "name": "http-engine",
+  "version": "1.0.0",
+  "description": "Http engine",
+  "main": "index.js",
+  "author": "vespaiach",
+  "license": "MIT",
+  "engines": {
+    "node": ">= 8.3.0"
+  }
+}

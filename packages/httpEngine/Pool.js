@@ -57,9 +57,9 @@ module.exports = exports = Pool;
  * If file contains many handlers, its file name will be used as namespace.
  * Example: user.js -> user.login, user.logout, user.create
  */
-function loadTerminals() {
-    fs.readdirSync(path.join(__dirname, '..', 'terminals')).forEach((file) => {
-        const terminal = require(`../terminals/${file}`);
+function loadTerminals(terminalPath) {
+    fs.readdirSync(terminalPath).forEach((file) => {
+        const terminal = require(path.join(terminalPath, file));
         const name = file.replace(/^(.+)\.\w+$/, '$1');
 
         switch (typeof terminal) {
@@ -81,27 +81,23 @@ function loadTerminals() {
  * Read pipeline configuration file and build a dictionary of routes.
  *
  */
-function loadPipelineConfig() {
+function loadPipelineConfig(pipelinePath) {
     const reg = /^(get|post|put|delete|options)\s([^\s]+)\s([^\s]+)$/i;
-    rl.createInterface(
-        fs.createReadStream(path.join(__dirname, '..', 'pipeline.config'), { encoding: 'utf-8' })
-    ).on('line', (line) => {
-        if (!reg.test(line)) {
-            console.log(`Warn pipeline config: ${line}`);
-            return;
-        }
+    rl.createInterface(fs.createReadStream(pipelinePath, { encoding: 'utf-8' })).on(
+        'line',
+        (line) => {
+            if (!reg.test(line)) {
+                console.log(`Warn pipeline config: ${line}`);
+                return;
+            }
 
-        const matches = reg.exec(line.trim());
-        Pool[matches[1]](matches[2], matches[3].split('->'));
-    });
+            const matches = reg.exec(line.trim());
+            Pool[matches[1]](matches[2], matches[3].split('->'));
+        }
+    );
 }
 
 Pool.routing = async (liquid) => {
-    if (liquid.isStaticResource) {
-        // Todo: implement pipline for static resources
-        return;
-    }
-
     const pipeline = PIPELINES[liquid.request.method.toLowerCase()] || [];
     let match;
     let p;
@@ -125,16 +121,29 @@ Pool.routing = async (liquid) => {
     await makePipeline(p, liquid);
 };
 
-Pool.start = function (port = 3000) {
-    loadTerminals();
-    loadPipelineConfig();
+Pool.global = function (data) {
+    this.global = data;
+    return this;
+};
+
+Pool.fail = function (error) {
+    this.emit('fail', error);
+};
+
+Pool.start = function (port = 3000, terminalPath, piplinePath, addOns = {}) {
+    loadTerminals(terminalPath);
+    loadPipelineConfig(piplinePath);
+
+    Object.entries(addOns).forEach(([k, v]) => {
+        this[k] = v(this);
+    });
 
     http.createServer(async (request, response) => {
         request.on('error', (err) => {
-            Pool.emit('fail', err);
+            Pool.fail(err);
         });
         response.on('error', (err) => {
-            Pool.emit('fail', err);
+            Pool.fail(err);
         });
 
         try {
@@ -144,7 +153,7 @@ Pool.start = function (port = 3000) {
         }
     })
         .on('error', (err) => {
-            Pool.emit('fail', err);
+            Pool.fail(err);
         })
         .listen(port);
 
